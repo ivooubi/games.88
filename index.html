@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Games.88 - Juegos Desbloqueados</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        body {
+            background: #000;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        #dots-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .dot {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #fff;
+            border-radius: 50%;
+            animation: fall linear infinite;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-100vh);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh);
+                opacity: 0.5;
+            }
+        }
+
+        .main-content {
+            padding: 40px;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        .clock {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            font-size: 24px;
+            font-weight: 600;
+            z-index: 10;
+            text-shadow: 0 0 3px rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .clock:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .clock:active {
+            transform: scale(0.98);
+        }
+
+        .clock-menu {
+            position: absolute;
+            top: 60px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 10px;
+            padding: 30px;
+            width: 350px;
+            z-index: 100;
+            display: none;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .clock-menu.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .clock-menu h4 {
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .stopwatch, .timer {
+            margin-bottom: 25px;
+        }
+
+        .stopwatch p, .timer p {
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+
+        .timer input {
+            width: 50px;
+            padding: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #fff;
+            border-radius: 5px;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+
+        .timer input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .clock-menu button {
+            background: #fff;
+            color: #000;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            transition: background 0.2s ease;
+        }
+
+        .clock-menu button:hover:not(:disabled) {
+            background: #ccc;
+        }
+
+        .clock-menu button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .close-menu {
+            display: block;
+            margin: 20px auto 0;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+        }
+
+        .header p {
+            font-size: 18px;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            color: #ccc;
+        }
+
+        .game-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .game-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-card:active {
+            transform: scale(0.98);
+        }
+
+        .game-card h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .game-card p {
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        .proxy-section {
+            margin: 40px auto;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        .proxy-section h3 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .proxy-iframe {
+            width: 100%;
+            height: 400px;
+            border: none;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+        }
+
+        .footer a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s ease;
+        }
+
+        .footer a:hover {
+            color: #ccc;
+        }
+
+        .footer .signature {
+            font-size: 14px;
+            color: #ccc;
+            margin-top: 10px;
+        }
+
+        #game-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.95);
+            width: 90%;
+            max-width: 800px;
+            height: 80vh;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 15px;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+
+        #game-container.active {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        #game-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        #close-game, #fullscreen-game {
+            position: absolute;
+            top: 10px;
+            background: #fff;
+            color: #000;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        #close-game {
+            right: 10px;
+        }
+
+        #fullscreen-game {
+            right: 80px;
+        }
+
+        #close-game:hover, #fullscreen-game:hover {
+            background: #ccc;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 36px;
+            }
+
+            .header p {
+                font-size: 16px;
+            }
+
+            #game-container {
+                width: 95%;
+                height: 70vh;
+            }
+
+            .game-section {
+                max-width: 100%;
+            }
+
+            .proxy-iframe {
+                height: 300px;
+            }
+
+            #fullscreen-game {
+                right: 70px;
+            }
+
+            .clock {
+                font-size: 18px;
+                top: 15px;
+                left: 15px;
+            }
+
+            .clock-menu {
+                width: 280px;
+                top: 50px;
+                left: 15px;
+                padding: 20px;
+            }
+
+            .clock-menu h4 {
+                font-size: 16px;
+                margin-bottom: 10px;
+            }
+
+            .stopwatch, .timer {
+                margin-bottom: 20px;
+            }
+
+            .stopwatch p, .timer p {
+                font-size: 18px;
+                margin-bottom: 10px;
+            }
+
+            .timer input {
+                width: 40px;
+                font-size: 12px;
+                margin-right: 8px;
+            }
+
+            .clock-menu button {
+                padding: 6px 10px;
+                font-size: 10px;
+                margin-right: 8px;
+                margin-bottom: 8px;
+            }
+
+            .close-menu {
+                margin: 15px auto 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="dots-overlay"></canvas>
+
+    <div class="main-content">
+        <div class="clock" id="clock"></div>
+        <div class="clock-menu" id="clock-menu">
+            <div class="stopwatch">
+                <h4>Cronómetro</h4>
+                <p id="stopwatch-display">00:00:00.000</p>
+                <button id="stopwatch-start">Iniciar</button>
+                <button id="stopwatch-stop" disabled>Pausar</button>
+                <button id="stopwatch-reset">Reiniciar</button>
+            </div>
+            <div class="timer">
+                <h4>Temporizador</h4>
+                <p id="timer-display">00:00</p>
+                <input type="number" id="timer-minutes" min="0" max="59" placeholder="Min" value="0">
+                <input type="number" id="timer-seconds" min="0" max="59" placeholder="Seg" value="0">
+                <button id="timer-start">Iniciar</button>
+                <button id="timer-pause" disabled>Pausar</button>
+                <button id="timer-reset">Reiniciar</button>
+            </div>
+            <button class="close-menu" id="close-menu">Cerrar</button>
+        </div>
+        <div class="header">
+            <h1>Games.88</h1>
+            <p>
+                Games.88 es tu plataforma ideal para disfrutar de juegos desbloqueados durante tus descansos o momentos libres en el colegio. 
+                Hemos diseñado esta página con un estilo minimalista y discreto para que puedas jugar sin llamar la atención de los profesores. 
+                Explora nuestras plataformas de juegos favoritas, optimizadas para una experiencia rápida y divertida. Nuestra interfaz es 
+                intuitiva y fácil de navegar, para que puedas sumergirte en la diversión sin complicaciones. ¡Juega con moderación y mantente 
+                atento en clase! Games.88 es tu rincón para desconectar y disfrutar.
+            </p>
+        </div>
+
+        <div class="game-section" id="games">
+            <div class="game-card" onclick="playGame('azgames')">
+                <h3>AZGames.io</h3>
+                <p>Una colección de juegos .io, clicker, carreras y más, perfectos para partidas rápidas.</p>
+            </div>
+            <div class="game-card" onclick="playGame('minecraft')">
+                <h3>Minecraft</h3>
+                <p>Minecraft original para jugar con tu imaginación hasta el infinito y más allá!</p>
+            </div>
+            <div class="game-card" onclick="playGame('easyfun')">
+                <h3>EasyFun.gg</h3>
+                <p>Disfruta de una variedad de juegos divertidos y accesibles para todas las edades.</p>
+            </div>
+            <div class="game-card" onclick="playGame('23azo')">
+                <h3>23azo</h3>
+                <p>Juegos emocionantes con un enfoque en acción y desafíos rápidos.</p>
+            </div>
+            <div class="game-card" onclick="playGame('slope2')">
+                <h3>Slope 2</h3>
+                <p>Un juego de carreras en 3D con controles simples y adictiva jugabilidad.</p>
+            </div>
+            <div class="game-card" onclick="playGame('freezenova')">
+                <h3>FreezeNova</h3>
+                <p>Una selección de juegos de acción, aventura y disparos para una experiencia inmersiva.</p>
+            </div>
+        </div>
+
+        <div class="proxy-section">
+            <h3>Proxy Integrado</h3>
+            <iframe class="proxy-iframe" src="https://use.gurdit.com/" title="Proxy"></iframe>
+        </div>
+
+        <div class="footer">
+            <p>Visita <a href="https://eva.edu.xunta.gal/" onclick="window.location.replace('https://eva.edu.xunta.gal/'); return false;">edixgal</a> para recursos educativos.</p>
+            <p class="signature">games.88, "el que la sigue siempre la consigue"</p>
+        </div>
+    </div>
+
+    <div id="game-container">
+        <button id="fullscreen-game">Pantalla completa</button>
+        <button id="close-game">Cerrar</button>
+        <iframe id="game-iframe" src=""></iframe>
+    </div>
+
+    <script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+    </script>
+    <script>
+        // Clock functionality
+        function updateClock() {
+            const clockElement = document.getElementById('clock');
+            const now = new Date().toLocaleTimeString('es-ES', {
+                timeZone: 'Europe/Madrid',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            clockElement.textContent = now;
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // Clock menu toggle
+        const clock = document.getElementById('clock');
+        const clockMenu = document.getElementById('clock-menu');
+        const closeMenu = document.getElementById('close-menu');
+
+        clock.addEventListener('click', () => {
+            clockMenu.classList.toggle('active');
+        });
+
+        closeMenu.addEventListener('click', () => {
+            clockMenu.classList.remove('active');
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (event) => {
+            if (!clockMenu.contains(event.target) && !clock.contains(event.target)) {
+                clockMenu.classList.remove('active');
+            }
+        });
+
+        // Stopwatch functionality
+        let stopwatchInterval = null;
+        let stopwatchTime = 0;
+        const stopwatchDisplay = document.getElementById('stopwatch-display');
+        const stopwatchStart = document.getElementById('stopwatch-start');
+        const stopwatchStop = document.getElementById('stopwatch-stop');
+        const stopwatchReset = document.getElementById('stopwatch-reset');
+
+        function updateStopwatch() {
+            stopwatchTime += 10;
+            const hours = Math.floor(stopwatchTime / 3600000);
+            const minutes = Math.floor((stopwatchTime % 3600000) / 60000);
+            const seconds = Math.floor((stopwatchTime % 60000) / 1000);
+            const milliseconds = stopwatchTime % 1000;
+            stopwatchDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
+        }
+
+        stopwatchStart.addEventListener('click', () => {
+            if (!stopwatchInterval) {
+                stopwatchInterval = setInterval(updateStopwatch, 10);
+                stopwatchStart.disabled = true;
+                stopwatchStop.disabled = false;
+            }
+        });
+
+        stopwatchStop.addEventListener('click', () => {
+            if (stopwatchInterval) {
+                clearInterval(stopwatchInterval);
+                stopwatchInterval = null;
+                stopwatchStart.disabled = false;
+                stopwatchStop.disabled = true;
+            }
+        });
+
+        stopwatchReset.addEventListener('click', () => {
+            clearInterval(stopwatchInterval);
+            stopwatchInterval = null;
+            stopwatchTime = 0;
+            stopwatchDisplay.textContent = '00:00:00.000';
+            stopwatchStart.disabled = false;
+            stopwatchStop.disabled = true;
+        });
+
+        // Timer functionality
+        let timerInterval = null;
+        let timerTime = 0;
+        const timerDisplay = document.getElementById('timer-display');
+        const timerMinutes = document.getElementById('timer-minutes');
+        const timerSeconds = document.getElementById('timer-seconds');
+        const timerStart = document.getElementById('timer-start');
+        const timerPause = document.getElementById('timer-pause');
+        const timerReset = document.getElementById('timer-reset');
+
+        function updateTimer() {
+            if (timerTime <= 0) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                timerDisplay.textContent = '00:00';
+                timerStart.disabled = false;
+                timerPause.disabled = true;
+                alert('¡Temporizador finalizado!');
+                return;
+            }
+            timerTime -= 1000;
+            const minutes = Math.floor(timerTime / 60000);
+            const seconds = Math.floor((timerTime % 60000) / 1000);
+            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        timerStart.addEventListener('click', () => {
+            if (!timerInterval) {
+                const minutes = parseInt(timerMinutes.value) || 0;
+                const seconds = parseInt(timerSeconds.value) || 0;
+                timerTime = (minutes * 60 + seconds) * 1000;
+                if (timerTime > 0) {
+                    timerInterval = setInterval(updateTimer, 1000);
+                    timerStart.disabled = true;
+                    timerPause.disabled = false;
+                    timerMinutes.disabled = true;
+                    timerSeconds.disabled = true;
+                }
+            }
+        });
+
+        timerPause.addEventListener('click', () => {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                timerStart.disabled = false;
+                timerPause.disabled = true;
+            }
+        });
+
+        timerReset.addEventListener('click', () => {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            timerTime = 0;
+            timerDisplay.textContent = '00:00';
+            timerStart.disabled = false;
+            timerPause.disabled = true;
+            timerMinutes.disabled = false;
+            timerSeconds.disabled = false;
+            timerMinutes.value = '0';
+            timerSeconds.value = '0';
+        });
+
+        // Falling dots animation
+        const canvas = document.getElementById('dots-overlay');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const dots = [];
+        for (let i = 0; i < 100; i++) {
+            dots.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * -canvas.height,
+                speed: Math.random() * 2 + 1,
+                delay: Math.random() * 5
+            });
+        }
+
+        function animateDots() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            dots.forEach(dot => {
+                ctx.beginPath();
+                ctx.arc(dot.x, dot.y, 2, 0, Math.PI * 2);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+                dot.y += dot.speed;
+                if (dot.y > canvas.height) {
+                    dot.y = -10;
+                    dot.x = Math.random() * canvas.width;
+                }
+            });
+            requestAnimationFrame(animateDots);
+        }
+        animateDots();
+
+        // Page loading
+        const pageUrls = {
+            'azgames': 'https://azgames.io/',
+            'minecraft': 'https://d1tm91r4ytbt54.cloudfront.net/2779cbcb-a02f-48a3-9e2e-95a8d123d165/1685483461665/web/index.html',
+            'easyfun': 'https://www.easyfun.gg/',
+            '23azo': 'https://23azo.com/',
+            'slope2': 'https://slope2.online/',
+            'freezenova': 'https://freezenova.com/'
+        };
+
+        function playGame(page) {
+            const gameContainer = document.getElementById('game-container');
+            const gameIframe = document.getElementById('game-iframe');
+            const url = pageUrls[page] || '';
+            
+            if (url) {
+                gameIframe.src = url;
+                gameContainer.style.display = 'flex';
+                gameContainer.classList.add('active');
+            } else {
+                alert(`La página ${page} no está disponible. ¡Prueba otra!`);
+            }
+        }
+
+        // Close game container
+        document.getElementById('close-game').addEventListener('click', () => {
+            const gameContainer = document.getElementById('game-container');
+            const gameIframe = document.getElementById('game-iframe');
+            gameContainer.classList.remove('active');
+            setTimeout(() => {
+                gameContainer.style.display = 'none';
+                gameIframe.src = '';
+            }, 300);
+        });
+
+        // Fullscreen button
+        document.getElementById('fullscreen-game').addEventListener('click', () => {
+            const gameIframe = document.getElementById('game-iframe');
+            if (gameIframe.requestFullscreen) {
+                gameIframe.requestFullscreen();
+            } else if (gameIframe.mozRequestFullScreen) {
+                gameIframe.mozRequestFullScreen();
+            } else if (gameIframe.webkitRequestFullscreen) {
+                gameIframe.webkitRequestFullscreen();
+            } else if (gameIframe.msRequestFullscreen) {
+                gameIframe.msRequestFullscreen();
+            }
+        });
+
+        // Resize canvas on window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
