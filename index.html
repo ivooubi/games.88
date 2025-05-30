@@ -1,3 +1,43 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+</script>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -233,6 +273,74 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
 
+        .ai-section {
+            margin: 40px auto;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        .ai-section h3 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .ai-input-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .ai-input {
+            flex: 1;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #fff;
+
+
+            outline: none;
+            transition: background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .ai-input:focus {
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .ai-send-button {
+            background: #fff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .ai-send-button:hover {
+            background: #ccc;
+        }
+
+        .ai-response {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 14px;
+            color: #ccc;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+        }
+
         .footer {
             text-align: center;
             margin-top: 40px;
@@ -439,6 +547,25 @@
                 font-size: 12px;
                 padding: 8px;
             }
+
+            .ai-section h3 {
+                font-size: 20px;
+            }
+
+            .ai-input {
+                font-size: 12px;
+                padding: 8px;
+            }
+
+            .ai-send-button {
+                font-size: 12px;
+                padding: 8px 15px;
+            }
+
+            .ai-response {
+                font-size: 12px;
+                padding: 10px;
+            }
         }
     </style>
 </head>
@@ -508,6 +635,15 @@
             <iframe class="proxy-iframe" src="https://use.gurdit.com/" title="Proxy"></iframe>
         </div>
 
+        <div class="ai-section">
+            <h3>IA</h3>
+            <div class="ai-input-container">
+                <input type="text" class="ai-input" id="ai-input" placeholder="Pregunta algo...">
+                <button class="ai-send-button" id="ai-send">Enviar</button>
+            </div>
+            <div class="ai-response" id="ai-response" style="display: none;"></div>
+        </div>
+
         <div class="code-input-section">
             <input type="text" class="code-input" id="code-input" placeholder="Introduce el código">
         </div>
@@ -533,31 +669,30 @@
           return cell !== '' && cell != null;
         }
         function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
+            if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+                try {
+                    var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                    var firstSheetName = workbook.SheetNames[0];
+                    var worksheet = workbook.Sheets[firstSheetName];
+                    var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                    var filteredData = jsonData.filter(row => row.some(filledCell));
+                    var headerRowIndex = filteredData.findIndex((row, index) =>
+                      row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                    );
+                    if (headerRowIndex === -1 || headerRowIndex > 25) {
+                      headerRowIndex = 0;
+                    }
+                    var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
+                    csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                    return csv;
+                } catch (e) {
+                    console.error(e);
+                    return "";
                 }
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
             }
+            return gk_fileData[filename] || "";
         }
-        return gk_fileData[filename] || "";
-        }
-    </script>
-    <script>
+
         // Clock functionality
         function updateClock() {
             const clockElement = document.getElementById('clock');
@@ -625,7 +760,6 @@
                 stopwatchInterval = null;
                 stopwatchStart.disabled = false;
                 stopwatchStop.disabled = true;
-                // Check if stopwatch stopped at exactly 10 seconds and 000 milliseconds
                 const seconds = Math.floor((stopwatchTime % 60000) / 1000);
                 const milliseconds = stopwatchTime % 1000;
                 if (seconds === 10 && milliseconds === 0) {
@@ -808,10 +942,244 @@
                 setTimeout(() => {
                     notification.classList.remove('active');
                 }, 3000);
-                codeInput.value = ''; // Clear input after success
+                codeInput.value = '';
             }
         });
-    (function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93d1e3d4ff90b022',t:'MTc0NjgwMDk3Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();
+
+        // AI Assistant functionality
+        const aiInput = document.getElementById('ai-input');
+        const aiSendButton = document.getElementById('ai-send');
+        const aiResponse = document.getElementById('ai-response');
+
+        function getAIResponse(query) {
+            query = query.toLowerCase().trim();
+
+            // Game-specific queries
+            if (query.includes('juego') || query.includes('game') || query.includes('jugar')) {
+                if (query.includes('minecraft')) {
+                    return 'Minecraft es un juego sandbox donde puedes construir, explorar y sobrevivir en un mundo generado aleatoriamente. En Games.88, haz clic en la tarjeta "Minecraft" en la sección de juegos para jugar directamente en tu navegador.';
+                } else if (query.includes('azgames')) {
+                    return 'AZGames.io ofrece una colección de juegos en línea como .io, clicker y carreras. Son ideales para sesiones rápidas. Selecciona la tarjeta "AZGames.io" en la sección de juegos para empezar.';
+                } else if (query.includes('easyfun')) {
+                    return 'EasyFun.gg proporciona juegos divertidos y accesibles para todas las edades, desde puzzles hasta aventuras casuales. Haz clic en la tarjeta "EasyFun.gg" en la sección de juegos para explorar.';
+                } else if (query.includes('23azo')) {
+                    return '23azo se especializa en juegos de acción y desafíos rápidos, perfectos para partidas emocionantes. Encuentra la tarjeta "23azo" en la sección de juegos para jugar.';
+                } else if (query.includes('wefut')) {
+                    return 'WeFUT es un simulador de FIFA Ultimate Team donde puedes crear y gestionar tu equipo de fútbol ideal. Selecciona la tarjeta "WeFUT" en la sección de juegos para empezar.';
+                } else if (query.includes('freezenova')) {
+                    return 'FreezeNova ofrece juegos de acción, aventura y disparos con una experiencia inmersiva. Haz clic en la tarjeta "FreezeNova" en la sección de juegos para disfrutar.';
+                } else if (query.includes('lista') || query.includes('disponibles') || query.includes('todos')) {
+                    return 'Games.88 incluye los siguientes juegos: Minecraft (sandbox creativo), AZGames.io (.io y clicker), EasyFun.gg (juegos casuales), 23azo (acción rápida), WeFUT (simulador de fútbol) y FreezeNova (acción y aventura). Haz clic en las tarjetas de la sección de juegos para jugar.';
+                } else if (query.includes('cómo') || query.includes('como')) {
+                    return 'Para jugar, haz clic en la tarjeta del juego que prefieras en la sección de juegos. Esto abrirá el juego en una ventana emergente. Usa el botón "Pantalla completa" para una mejor experiencia o "Cerrar" para volver al menú.';
+                } else {
+                    return 'Games.88 ofrece una variedad de juegos como Minecraft, AZGames.io, EasyFun.gg, 23azo, WeFUT y FreezeNova. Selecciona cualquier tarjeta en la sección de juegos para empezar. ¿Quieres información sobre un juego específico?';
+                }
+            }
+
+            // Site feature queries
+            if (query.includes('cronómetro') || query.includes('stopwatch')) {
+                if (query.includes('cómo') || query.includes('usar')) {
+                    return 'Para usar el cronómetro, haz clic en el reloj en la esquina superior izquierda para abrir el menú. En la sección "Cronómetro", usa "Iniciar" para comenzar, "Pausar" para detener y "Reiniciar" para volver a cero. ¡Intenta parar exactamente en 10 segundos para un logro!';
+                } else {
+                    return 'El cronómetro está en el menú del reloj (esquina superior izquierda). Haz clic en el reloj, selecciona "Cronómetro" y usa los botones "Iniciar", "Pausar" o "Reiniciar".';
+                }
+            }
+            if (query.includes('temporizador') || query.includes('timer')) {
+                if (query.includes('cómo') || query.includes('usar')) {
+                    return 'Para usar el temporizador, haz clic en el reloj en la esquina superior izquierda. En la sección "Temporizador", ingresa los minutos y segundos, luego presiona "Iniciar". Puedes pausar con "Pausar" o reiniciar con "Reiniciar". Recibirás una alerta cuando termine.';
+                } else {
+                    return 'El temporizador está en el menú del reloj (esquina superior izquierda). Ingresa minutos y segundos, luego usa los botones "Iniciar", "Pausar" o "Reiniciar".';
+                }
+            }
+            if (query.includes('proxy')) {
+                if (query.includes('qué') || query.includes('es')) {
+                    return 'El proxy integrado de Games.88, ubicado en la sección "Proxy Integrado" arriba de esta sección, te permite navegar de forma segura y acceder a contenido restringido. Usa el iframe para explorar sitios externos.';
+                } else if (query.includes('cómo') || query.includes('usar')) {
+                    return 'El proxy está en la sección "Proxy Integrado" arriba. Ingresa la URL que deseas visitar en el iframe para navegar de forma segura. Es ideal para acceder a sitios bloqueados o proteger tu privacidad.';
+                } else {
+                    return 'El proxy integrado está en la sección "Proxy Integrado" justo arriba. Úsalo para navegar de forma segura en el iframe proporcionado.';
+                }
+            }
+            if (query.includes('código') || query.includes('code')) {
+                if (query.includes('qué') || query.includes('es')) {
+                    return 'La sección "Introduce el código" debajo de esta sección te permite ingresar códigos para desbloquear logros. Por ejemplo, prueba "paul.88" para desbloquear un logro especial.';
+                } else if (query.includes('cómo') || query.includes('usar')) {
+                    return 'En la sección "Introduce el código" debajo, escribe un código como "paul.88" y observa si desbloqueas un logro. Los códigos deben ingresarse exactamente como se proporcionan.';
+                } else {
+                    return 'Usa la sección "Introduce el código" debajo para ingresar códigos. Prueba "paul.88" para desbloquear un logro secreto.';
+                }
+            }
+
+            // Time and date queries
+            if (query.includes('hora') || query.includes('time')) {
+                const now = new Date().toLocaleTimeString('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                return `La hora actual en Madrid es ${now} (CEST, 30 de mayo de 2025).`;
+            }
+            if (query.includes('fecha') || query.includes('date') || query.includes('día') || query.includes('day')) {
+                const date = new Date().toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                return `Hoy es ${date}.`;
+            }
+
+            // General knowledge queries
+            if (query.includes('quién') || query.includes('quien')) {
+                if (query.includes('creó') || query.includes('creador') || query.includes('hizo') || query.includes('desarrolló')) {
+                    if (query.includes('minecraft')) {
+                        return 'Minecraft fue creado por Markus Persson (Notch) y desarrollado por Mojang Studios. En Games.88, puedes jugar una versión en navegador haciendo clic en la tarjeta "Minecraft".';
+                    } else if (query.includes('games.88')) {
+                        return 'Games.88 fue creado por un equipo de desarrolladores dedicados a ofrecer una plataforma de juegos minimalista y accesible para todos.';
+                    } else {
+                        return 'Por favor, especifica de quién hablas. Por ejemplo, "¿Quién creó Games.88?" o "¿Quién creó Minecraft?".';
+                    }
+                } else if (query.includes('es')) {
+                    if (query.includes('elon musk')) {
+                        return 'Elon Musk es un empresario e inventor, CEO de empresas como Tesla, SpaceX y xAI. Es conocido por sus contribuciones a la tecnología y la exploración espacial.';
+                    } else if (query.includes('albert einstein')) {
+                        return 'Albert Einstein fue un físico teórico de origen alemán, famoso por desarrollar la teoría de la relatividad, incluyendo la ecuación E=mc².';
+                    } else {
+                        return 'Especifica de quién hablas, por ejemplo, "¿Quién es Elon Musk?" o "¿Quién es Albert Einstein?".';
+                    }
+                } else {
+                    return 'Por favor, especifica de quién hablas. Por ejemplo, "¿Quién creó Games.88?" o "¿Quién es Albert Einstein?".';
+                }
+            }
+            if (query.includes('qué') || query.includes('que')) {
+                if (query.includes('es games.88') || query.includes('es este sitio') || query.includes('es esta página')) {
+                    return 'Games.88 es una plataforma minimalista diseñada para disfrutar de juegos en línea como Minecraft, AZGames.io, EasyFun.gg, 23azo, WeFUT y FreezeNova. Incluye un proxy integrado, un cronómetro, un temporizador y un sistema de códigos para logros.';
+                } else if (query.includes('es un proxy') || query.includes('es proxy')) {
+                    return 'Un proxy es un servidor que actúa como intermediario para navegar por internet de forma segura o acceder a contenido restringido. En Games.88, el proxy integrado está en la sección "Proxy Integrado" para navegar desde el iframe.';
+                } else if (query.includes('es minecraft')) {
+                    return 'Minecraft es un juego sandbox donde construyes, exploras y sobrevives en un mundo de bloques. En Games.88, haz clic en la tarjeta "Minecraft" para jugar en tu navegador.';
+                } else if (query.includes('es la capital') || query.includes('capital de')) {
+                    const countryMatch = query.match(/capital de (\w+)/);
+                    if (countryMatch) {
+                        const country = countryMatch[1].toLowerCase();
+                        const capitals = {
+                            'españa': 'Madrid',
+                            'francia': 'París',
+                            'italia': 'Roma',
+                            'alemania': 'Berlín',
+                            'japón': 'Tokio',
+                            'estados unidos': 'Washington D.C.',
+                            'brasil': 'Brasilia'
+                        };
+                        return capitals[country] ? `La capital de ${country.charAt(0).toUpperCase() + country.slice(1)} es ${capitals[country]}.` : 'No tengo información sobre ese país. Prueba con otro, como "¿Cuál es la capital de España?".';
+                    }
+                } else if (query.includes('es el significado') || query.includes('significa')) {
+                    const wordMatch = query.match(/significa (\w+)/);
+                    if (wordMatch) {
+                        const word = wordMatch[1].toLowerCase();
+                        const meanings = {
+                            'libertad': 'La libertad es el estado de poder actuar, hablar o pensar sin restricciones indebidas, respetando los derechos de los demás.',
+                            'amor': 'El amor es un sentimiento intenso de afecto, cuidado o atracción hacia una persona, cosa o idea.',
+                            'tecnología': 'La tecnología es el conjunto de conocimientos, herramientas y métodos usados para crear bienes o servicios.'
+                        };
+                        return meanings[word] ? `El significado de "${word}" es: ${meanings[word]}` : 'No tengo el significado de esa palabra. Prueba con otra, como "¿Qué significa libertad?".';
+                    }
+                } else {
+                    return '¿Qué quieres saber? Prueba con "¿Qué es Games.88?", "¿Qué es un proxy?" o "¿Qué es la capital de Francia?".';
+                }
+            }
+            if (query.includes('cómo') || query.includes('como')) {
+                if (query.includes('pantalla completa') || query.includes('fullscreen')) {
+                    return 'Para jugar en pantalla completa, selecciona un juego en la sección de juegos, luego haz clic en el botón "Pantalla completa" en la ventana del juego.';
+                } else if (query.includes('cerrar') || query.includes('salir')) {
+                    return 'Para cerrar un juego, haz clic en el botón "Cerrar" en la ventana del juego. Para cerrar el menú del reloj, usa el botón "Cerrar" en el menú.';
+                } else if (query.includes('hacer un pastel') || query.includes('cocinar')) {
+                    return 'Para hacer un pastel básico, necesitarás: 2 tazas de harina, 1 taza de azúcar, 2 huevos, 1/2 taza de mantequilla, 1 taza de leche, 2 cucharaditas de polvo de hornear y esencia de vainilla. Mezcla los ingredientes secos, agrega los húmedos, bate hasta obtener una masa homogénea, vierte en un molde engrasado y hornea a 180°C por 30-35 minutos. ¡Déjalo enfriar y decora!';
+                } else if (query.includes('aprender a programar')) {
+                    return 'Para aprender a programar, empieza con un lenguaje como Python por su simplicidad. Usa plataformas como Codecademy o freeCodeCamp, practica proyectos pequeños y lee documentación. La clave es la constancia y resolver problemas reales.';
+                } else {
+                    return '¿Cómo puedo ayudarte? Por ejemplo, pregunta "¿Cómo juego a Minecraft?", "¿Cómo uso el temporizador?" o "¿Cómo hacer un pastel?".';
+                }
+            }
+            if (query.includes('cuál') || query.includes('cual')) {
+                if (query.includes('mejor juego') || query.includes('juego favorito')) {
+                    return 'Todos los juegos en Games.88 son geniales, pero depende de tus gustos: Minecraft para creatividad, AZGames.io para partidas rápidas, EasyFun.gg para diversión casual, 23azo para acción, WeFUT para fútbol, o FreezeNova para aventuras intensas. ¿Cuál prefieres probar?';
+                } else if (query.includes('es el mejor lenguaje de programación')) {
+                    return 'El "mejor" lenguaje de programación depende de tu objetivo. Python es ideal para principiantes y ciencia de datos, JavaScript para desarrollo web, C++ para rendimiento en juegos, y Java para aplicaciones empresariales. ¿Qué quieres crear?';
+                } else {
+                    return '¿Cuál quieres saber? Por ejemplo, pregunta "¿Cuál es el mejor juego?" o "¿Cuál es el mejor lenguaje de programación?".';
+                }
+            }
+
+            // Math and calculation queries
+            if (query.match(/(\d+\s*[\+\-\*\/]\s*\d+)/)) {
+                try {
+                    const expression = query.match(/(\d+\s*[\+\-\*\/]\s*\d+)/)[0];
+                    const result = eval(expression); // Note: eval is used for simplicity; in production, use a safer parser like math.js
+                    return `El resultado de ${expression} es ${result}.`;
+                } catch (e) {
+                    return 'No pude calcular eso. Asegúrate de escribir una expresión matemática válida, como "2 + 3" o "5 * 4".';
+                }
+            }
+
+            // Science and technology queries
+            if (query.includes('planeta') || query.includes('sistema solar')) {
+                if (query.includes('cuántos planetas') || query.includes('numero de planetas')) {
+                    return 'El sistema solar tiene 8 planetas: Mercurio, Venus, Tierra, Marte, Júpiter, Saturno, Urano y Neptuno.';
+                } else if (query.includes('mayor planeta') || query.includes('planeta más grande')) {
+                    return 'Júpiter es el planeta más grande del sistema solar, con un diámetro de aproximadamente 139,820 km.';
+                } else {
+                    return 'El sistema solar incluye 8 planetas, el Sol, lunas, asteroides y cometas. ¿Quieres saber algo específico, como "¿Cuántos planetas hay?" o "¿Cuál es el planeta más grande?".';
+                }
+            }
+            if (query.includes('tecnología') || query.includes('tecnologia')) {
+                if (query.includes('qué es ia') || query.includes('inteligencia artificial')) {
+                    return 'La inteligencia artificial (IA) es una rama de la informática que desarrolla sistemas capaces de realizar tareas que requieren inteligencia humana, como aprender, razonar o responder preguntas. Yo soy un ejemplo de IA, creado para ayudarte en Games.88.';
+                } else {
+                    return 'La tecnología abarca herramientas, sistemas y métodos para resolver problemas. ¿Quieres saber sobre algo específico, como "¿Qué es la inteligencia artificial?"?';
+                }
+            }
+
+            // History and culture queries
+            if (query.includes('historia') || query.includes('history')) {
+                if (query.includes('segunda guerra mundial')) {
+                    return 'La Segunda Guerra Mundial (1939-1945) fue un conflicto global entre las potencias del Eje (Alemania, Japón, Italia) y los Aliados (EE.UU., Reino Unido, URSS, entre otros). Comenzó con la invasión de Polonia por Alemania y terminó con la rendición de Japón tras los bombardeos atómicos de Hiroshima y Nagasaki.';
+                } else {
+                    return 'La historia cubre eventos, personas y culturas del pasado. ¿Quieres saber sobre algo específico, como "¿Qué pasó en la Segunda Guerra Mundial?"?';
+                }
+            }
+
+            // Conversational queries
+            if (query.includes('hola') || query.includes('hey') || query.includes('saludo')) {
+                return '¡Hola! Bienvenido a Games.88. Estoy listo para responder cualquier pregunta, desde juegos hasta ciencia o historia. ¿Qué tienes en mente? 😊';
+            }
+            if (query.includes('gracias') || query.includes('thank')) {
+                return '¡De nada! Estoy aquí para ayudarte con cualquier duda o curiosidad. ¿Qué más quieres saber?';
+            }
+            if (query.includes('cómo estás') || query.includes('como estás') || query.includes('how are you')) {
+                return '¡Estoy genial, gracias por preguntar! Soy una IA lista para ayudarte con cualquier tema, desde Games.88 hasta el universo. ¿Qué quieres explorar?';
+            }
+            if (query.includes('quién eres') || query.includes('quien eres') || query.includes('who are you')) {
+                return 'Soy una IA avanzada en Games.88, inspirada en sistemas como Grok de xAI. Puedo responder sobre juegos, ciencia, historia, matemáticas o cualquier cosa que te intrigue. ¡Pregúntame lo que sea!';
+            }
+
+            // Fallback for unrecognized queries
+            return 'No estoy seguro de cómo responder a eso. Prueba con algo como "¿Qué juegos hay?", "¿Qué hora es?", "¿Cuál es la capital de Francia?" o incluso "¿Cómo hacer un pastel?". ¡Estoy listo para cualquier pregunta!';
+        }
+
+        aiSendButton.addEventListener('click', () => {
+            const query = aiInput.value;
+            if (query) {
+                const response = getAIResponse(query);
+                aiResponse.textContent = response;
+                aiResponse.style.display = 'block';
+                aiInput.value = '';
+            }
+        });
+
+        aiInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && aiInput.value) {
+                const query = aiInput.value;
+                const response = getAIResponse(query);
+                aiResponse.textContent = response;
+                aiResponse.style.display = 'block';
+                aiInput.value = '';
+            }
+        });
+
+        (function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93d1e3d4ff90b022',t:'MTc0NjgwMDk3Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();
     </script>
 </body>
 </html>
